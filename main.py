@@ -225,7 +225,7 @@ def main():
                 if event.key in {pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT}:
                     key_pressed.discard(event.key)
 
-        if pygame.key. in key_pressed:
+        if pygame.K_LEFT in key_pressed:
             game.move_piece(-1)
         if pygame.K_RIGHT in key_pressed:
             game.move_piece(1)
