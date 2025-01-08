@@ -39,13 +39,13 @@ SHAPE_TEMPLATES = [
 
 class Tetromino:
     def __init__(self, pos_x, pos_y, shape_matrix):
-        self.pos_x = pos_x # Начальная позиция по иксу
-        self.pos_y = pos_y # Начальная позиция по игрику
+        self.x = pos_x # Начальная позиция по иксу
+        self.y = pos_y # Начальная позиция по игрику
 
         self.shape = [
             shape_matrix,
             self.rotate_matrix(shape_matrix),
-            self.totate_matrix(self.rotate_matrix(shape_matrix)),
+            self.rotate_matrix(self.rotate_matrix(shape_matrix)),
             self.rotate_matrix(self.rotate_matrix(self.rotate_matrix(shape_matrix)))
         ] # Возможные положения фигуры
 
@@ -61,8 +61,9 @@ class Tetromino:
         return self.shape[self.rotation_state]
 
     # поворот на 90 градусов
-    def rotate_matrix(self, matrix):
-        return [list(row) for row in zip(*matrix)[::-1]]
+    @staticmethod
+    def rotate_matrix(matrix):
+        return [list(row) for row in zip(*matrix[::-1])]
 
 
 class TetrisGame:
@@ -77,16 +78,17 @@ class TetrisGame:
         self.move_dx = 0 # перемещение по иксу
         self.move_dy = 0 # перемещение по игрику
 
-    def generate_new_piece(self):
+    @staticmethod
+    def generate_new_piece():
         return Tetromino(COLUMNS // 2 - 2, 0, random.choice(SHAPE_TEMPLATES))
 
     def check_collision(self, offset_x=0, offset_y=0):
         for y, row in enumerate(self.current_piece.get_image()):
             for x, cell in enumerate(row):
                 if cell:
-                    if (x + self.current_piece.x + offset_x < 0 or\
-                            x + self.current_piece.x >= COLUMNS or\
-                            y + self.current_piece.y + offset_y >= ROWS or\
+                    if (x + self.current_piece.x + offset_x < 0 or
+                            x + self.current_piece.x >= COLUMNS or
+                            y + self.current_piece.y + offset_y >= ROWS or
                             self.grid[y + self.current_piece.y + offset_y][x + self.current_piece.x + offset_x] != BLACK):
                         return True
 
@@ -101,7 +103,7 @@ class TetrisGame:
                     if 0 <= grid_y < ROWS and 0 <= grid_x < COLUMNS:
                         self.grid[grid_y][grid_x] = self.current_piece.color
         self.clear_filled_lines()
-        self.current_piece = self.next_piece()
+        self.current_piece = self.next_piece
         self.next_piece = self.generate_new_piece()
         if self.check_collision():
             self.is_game_over = True
@@ -113,11 +115,9 @@ class TetrisGame:
             self.grid.insert(0, [BLACK for _ in range(COLUMNS)])
         self.score += 100
 
-    def move_piece(self):
-        if not self.check_collision(0, 1):
-            self.current_piece.y += 1
-        else:
-            self.lock_piece()
+    def move_piece(self, delta_x):
+        if not self.check_collision(delta_x, 0):
+            self.current_piece.x += 1
 
     def drop_piece(self):
         if not self.check_collision(0, 1):
@@ -200,3 +200,48 @@ class TetrisGame:
             pygame.quit()
             exit()
 
+
+def main():
+    screen = pygame.display.set_mode((WINDOW_WIDTH + 6 * BLOCK_DIMENSION, WINDOW_HEIGHT))
+    pygame.display.set_caption("Tetris")
+
+    clock = pygame.time.Clock()
+    game = TetrisGame(screen)
+    running = True
+    key_pressed = set()
+    fall_speed = 500
+    last_fall_time = pygame.time.get_ticks()
+
+    while running:
+        current_time = pygame.time.get_ticks()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key in {pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT}:
+                    key_pressed.add(event.key)
+            if event.type == pygame.KEYUP:
+                if event.key in {pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT}:
+                    key_pressed.discard(event.key)
+
+        if pygame.key. in key_pressed:
+            game.move_piece(-1)
+        if pygame.K_RIGHT in key_pressed:
+            game.move_piece(1)
+        if pygame.K_DOWN in key_pressed:
+            game.move_piece(0)
+            game.drop_piece()
+        if pygame.K_UP in key_pressed:
+            game.rotate_piece()
+        if current_time - last_fall_time > fall_speed:
+            game.drop_piece()
+            last_fall_time = current_time
+
+        game.render()
+
+        game.update_game_status()
+
+        clock.tick(10)
+
+main()
